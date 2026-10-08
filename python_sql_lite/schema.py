@@ -7,9 +7,9 @@ sql_create_guests_table = """
             'mother', 'father', 'sister', 'brother', 'grandmother', 'grandfather',
             'aunt', 'uncle', 'cousin', 'niece', 'nephew',
             'friend', 'coworker', 'neighbor', 'other'
-        )),
-        bride_side INTEGER NOT NULL DEFAULT 0 CHECK (bride_side IN (0, 1)),
-        groom_side INTEGER NOT NULL DEFAULT 0 CHECK (groom_side IN (0, 1))
+        )), -- relation to the bride or groom; family = mother, father, sister, brother, grandmother, grandfather, aunt, uncle, cousin, niece, nephew
+        bride_side INTEGER NOT NULL DEFAULT 0 CHECK (bride_side IN (0, 1)), -- 1 if the guest is a bride-side guest (family OR friend)
+        groom_side INTEGER NOT NULL DEFAULT 0 CHECK (groom_side IN (0, 1)) -- 1 if the guest is a groom-side guest (family OR friend)
     );
 """
 
