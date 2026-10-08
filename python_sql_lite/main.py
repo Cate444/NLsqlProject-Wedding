@@ -44,6 +44,14 @@ Question: Which customers from Bangkok ordered a Latte?
 SQL: SELECT DISTINCT c.firstname, c.lastname FROM customers c JOIN orders o ON o.customer_id = c.customer_id JOIN menu m ON m.menu_id = o.menu_id WHERE c.city = 'Bangkok' AND m.menu_name = 'Latte';
 """
 
+def get_data_hints(conn):
+    cur = conn.cursor()
+    events = [r[0] for r in cur.execute("SELECT event_name FROM events")]
+    roles = [r[0] for r in cur.execute("SELECT DISTINCT role FROM wedding_party")]
+    return f"""Exact values in the data (text comparisons are case-sensitive):
+- events.event_name: {events}
+- wedding_party.role: {roles}"""
+
 def get_sql(client, conn, question, strategy):
     examples = ""
     if strategy == "single_domain":
@@ -54,6 +62,8 @@ def get_sql(client, conn, question, strategy):
     prompt = f"""You are an expert at writing SQLite queries.
 Here is the database schema for a wedding:
 {SCHEMA}
+
+{get_data_hints(conn)}
 
 More Context:
 {examples}
@@ -108,6 +118,7 @@ def main(conn, question, strategy):
     client = OpenAI(api_key=auth["api_key"])
 
     sql = clean_sql(get_sql(client, conn, question, strategy) )
+    print("Strategy:", strategy)
     print("Question:", question)
     print("SQL:", sql)
 
