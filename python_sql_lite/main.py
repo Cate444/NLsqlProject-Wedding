@@ -44,43 +44,6 @@ Question: Which customers from Bangkok ordered a Latte?
 SQL: SELECT DISTINCT c.firstname, c.lastname FROM customers c JOIN orders o ON o.customer_id = c.customer_id JOIN menu m ON m.menu_id = o.menu_id WHERE c.city = 'Bangkok' AND m.menu_name = 'Latte';
 """
 
-# def get_sql_zero_shot(client, question):
-#     prompt = f"""You are an expert at writing SQLite queries.
-# Here is the database schema for a wedding:
-# {SCHEMA}
-
-# Write one SQLite query that answers the question below.
-# Respond with ONLY the SQL query, no explanation.
-
-# Question: {question}"""
-
-#     response = client.chat.completions.create(
-#         model=MODEL,
-#         messages=[{"role": "user", "content": prompt}],
-#     )
-#     return response.choices[0].message.content
-
-# def get_sql_single_domain(client, question, conn):
-#     prompt = f"""You are an expert at writing SQLite queries.
-# Here is the database schema for a wedding:
-# {SCHEMA}
-
-# SINGLE_DOMAIN_EXAMPLES
-# # {get_data_hints(conn)}
-
-# Write one SQLite query that answers the question below.
-# Respond with ONLY the SQL query, no explanation.
-
-# Question: {question}"""
-
-#     response = client.chat.completions.create(
-#         model=MODEL,
-#         messages=[{"role": "user", "content": prompt}],
-#     )
-#     return response.choices[0].message.content
-
-
-
 def get_sql(client, conn, question, strategy):
     examples = ""
     if strategy == "single_domain":
