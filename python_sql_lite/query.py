@@ -31,11 +31,11 @@ def select_from_table(conn, query):
         print(row)
 
 if __name__ == "__main__":
-    database = "./pythonsqlite.db"
+    database = "./wedding.db"
     conn = create_connection(database)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--query", type=str, help="SELECT * FROM menu where unit_price >=55.0")
+    parser.add_argument("--query", type=str, help="SELECT * FROM guests")
     args = parser.parse_args()
     print(f"Executing query: {args.query}")
     select_from_table(conn, args.query)

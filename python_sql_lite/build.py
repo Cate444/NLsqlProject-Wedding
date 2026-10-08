@@ -3,136 +3,195 @@ import os
 from db import create_table, create_connection
 from schema import *
 
+DATABASE = "./wedding.db"
 
-def select_all_from_menu(conn):
-    """
-    Query all rows in the tasks table
-    :param conn: the Connection object
-    :return:
-    """
+# ---------------------------------------------------------------------------
+# Data
+# ---------------------------------------------------------------------------
+
+# (id, first, last, relation, bride_side, groom_side)
+GUESTS = [
+    # Bride's side of the wedding party
+    (1, 'Sydney', 'Nielson', 'sister', 1, 0),
+    (2, 'Eva', 'Renfro', 'sister', 1, 0),
+    (3, 'Lauren', 'Murphy', 'sister', 1, 0),
+    (4, 'Ashleigh', 'Heafen', 'sister', 1, 0),
+    (5, 'Meg', 'Mott', 'friend', 1, 0),
+    (6, 'Rachel', 'Mott', 'friend', 1, 0),
+    (7, 'Jackie', 'Barton', 'friend', 1, 0),
+    (8, 'Natalee', 'Dong', 'friend', 1, 0),
+    (9, 'Ella', 'Callister', 'friend', 1, 0),
+    # Groom's side of the wedding party
+    (10, 'Tyler', 'Heaton', 'friend', 0, 1),
+    (11, 'Andrew', 'Price', 'friend', 0, 1),
+    (12, 'Kyle', 'Motley', 'brother', 0, 1),
+    (13, 'Sean', 'Motley', 'brother', 0, 1),
+    (14, 'Kade', 'Motley', 'brother', 0, 1),
+    (15, 'Luke', 'Roberts', 'friend', 0, 1),
+    (16, 'Tyson', 'Vanwagner', 'friend', 0, 1),
+    # Kids
+    (17, 'Jackie', 'Murphy', 'niece', 1, 0),
+    (18, 'Emerson', 'Murphy', 'nephew', 1, 0),
+    # Parents
+    (19, 'Ty', 'Allen', 'father', 1, 0),
+    (20, 'Heather', 'Allen', 'mother', 1, 0),
+    (21, 'Scott', 'Motley', 'father', 0, 1),
+    (22, 'Carrie', 'Motley', 'mother', 0, 1),
+    # DUMMY guests (made up for testing)
+    (23, 'Linda', 'Allen', 'grandmother', 1, 0),
+    (24, 'Robert', 'Allen', 'grandfather', 1, 0),
+    (25, 'Karen', 'Jensen', 'aunt', 1, 0),
+    (26, 'Mike', 'Jensen', 'uncle', 1, 0),
+    (27, 'Brooke', 'Jensen', 'cousin', 1, 0),
+    (28, 'Diane', 'Motley', 'grandmother', 0, 1),
+    (29, 'Paul', 'Hansen', 'uncle', 0, 1),
+    (30, 'Susan', 'Hansen', 'aunt', 0, 1),
+    (31, 'Jake', 'Hansen', 'cousin', 0, 1),
+    (32, 'Megan', 'Carter', 'coworker', 1, 0),
+    (33, 'Chris', 'Nguyen', 'coworker', 0, 1),
+    (34, 'Amy', 'Peterson', 'neighbor', 1, 1),
+    (35, 'Dan', 'Peterson', 'neighbor', 1, 1),
+    (36, 'Olivia', 'Brooks', 'friend', 1, 1),
+]
+
+# (guest_id, role)
+WEDDING_PARTY = [
+    (1, 'maid of honor'),
+    (2, 'maid of honor'),
+    (3, 'bridesmaid'),
+    (4, 'bridesmaid'),
+    (5, 'bridesmaid'),
+    (6, 'bridesmaid'),
+    (7, 'bridesmaid'),
+    (8, 'bridesmaid'),
+    (9, 'bridesmaid'),
+    (10, 'best man'),
+    (11, 'groomsman'),
+    (12, 'groomsman'),
+    (13, 'groomsman'),
+    (14, 'groomsman'),
+    (15, 'groomsman'),
+    (16, 'groomsman'),
+    (17, 'flower girl'),
+    (18, 'ring bearer'),
+]
+
+# (id, event_name)
+EVENTS = [
+    (1, 'Family Bridal Shower'),
+    (2, 'Friend Bridal Shower'),
+    (3, 'Bachelorette Party'),
+    (4, 'Bachelor Party'),
+    (5, 'Ceremony'),
+    (6, 'Reception'),
+]
+
+# (event_id, guest_id, rsvp, attended)
+RSVPS = [
+    # Family Bridal Shower: mothers and sisters
+    (1, 1, 'yes', 1),
+    (1, 2, 'yes', 1),
+    (1, 3, 'yes', 1),
+    (1, 4, 'yes', 0),       # dummy: said yes, didn't come
+    (1, 20, 'yes', 1),
+    (1, 22, 'no', 0),       # dummy: declined
+    # Friend Bridal Shower: bridesmaids and maids of honor
+    (2, 1, 'yes', 1),
+    (2, 2, 'yes', 1),
+    (2, 3, 'no', 0),        # dummy
+    (2, 4, 'yes', 1),
+    (2, 5, 'yes', 1),
+    (2, 6, 'yes', 1),
+    (2, 7, 'yes', 0),       # dummy
+    (2, 8, 'yes', 1),
+    (2, 9, 'pending', 0),   # dummy: never responded
+    # Bachelorette Party: bridesmaids and maids of honor
+    (3, 1, 'yes', 1),
+    (3, 2, 'yes', 1),
+    (3, 3, 'yes', 1),
+    (3, 4, 'yes', 1),
+    (3, 5, 'yes', 1),
+    (3, 6, 'no', 0),        # dummy
+    (3, 7, 'yes', 1),
+    (3, 8, 'yes', 1),
+    (3, 9, 'yes', 1),
+    # Bachelor Party: best man and groomsmen
+    (4, 10, 'yes', 1),
+    (4, 11, 'yes', 1),
+    (4, 12, 'yes', 1),
+    (4, 13, 'yes', 0),      # dummy
+    (4, 14, 'yes', 1),
+    (4, 15, 'no', 0),       # dummy
+    (4, 16, 'yes', 1),
+]
+
+# Ceremony and Reception: every guest is invited. Default is ('yes', attended);
+# these dummy exceptions override it. guest_id: (ceremony, reception)
+CEREMONY_RECEPTION_EXCEPTIONS = {
+    27: (('pending', 0), ('pending', 0)),  # never responded
+    31: (('yes', 0), ('yes', 1)),          # missed the ceremony, came to the reception
+    33: (('no', 0), ('no', 0)),            # declined both
+}
+for guest_id, *_ in GUESTS:
+    ceremony, reception = CEREMONY_RECEPTION_EXCEPTIONS.get(guest_id, (('yes', 1), ('yes', 1)))
+    RSVPS.append((5, guest_id, *ceremony))
+    RSVPS.append((6, guest_id, *reception))
+
+# (id, type, guest_id, event_id) — all DUMMY gifts; event_id None = shipped
+GIFTS = [
+    (1, 'towel set', 1, 1),
+    (2, 'cookbook', 2, 1),
+    (3, 'Dutch oven', 3, 1),
+    (4, 'quilt', 20, 1),
+    (5, 'candle set', 5, 2),
+    (6, 'wine glasses', 6, 2),
+    (7, 'cutting board', 8, 2),
+    (8, 'throw blanket', 9, 2),
+    (9, 'picture frame', 7, None),
+    (10, 'cooler', 10, 4),
+    (11, 'cash', 19, 6),
+    (12, 'cash', 21, 6),
+    (13, 'recipe book', 23, 6),
+    (14, 'KitchenAid mixer', 25, 6),
+    (15, 'gift card', 26, 6),
+    (16, 'gift card', 32, 6),
+    (17, 'air fryer', 34, 6),
+    (18, 'cash', 11, 6),
+    (19, 'toaster', 33, None),
+]
+
+
+def insert_rows(conn, table, rows):
+    """Insert a list of tuples into a table using a parameterized query."""
+    if not rows:
+        return
+    placeholders = ", ".join("?" * len(rows[0]))
     cur = conn.cursor()
-    cur.execute("SELECT * FROM menu")
-
-    rows = cur.fetchall()
-
-    for row in rows:
-        print(row)
-
-def insert_to_menu(conn):
-    """
-    Create a new project into the projects table
-    :param conn:
-    :param project:
-    :return: project id
-    """
-    sql = """
-        INSERT INTO menu VALUES
-        (1, 'Green Tea', '1', 50),
-        (2, 'Thai Tea', '1', 50),
-        (3, 'Jasmine Tea', '1', 50),
-        (4, 'Espresso', '2',55),
-        (5, 'Cappucino', '2',55),
-        (6, 'Latte', '2',55),
-        (7, 'Mocha', '2',55),
-        (8, 'Passion Fruit', '3',60),
-        (9, 'Mango Juice', '3',60),
-        (10,'Orange Juice', '3',60);
-    """
-
-    cur = conn.cursor()
-    cur.execute(sql)
+    cur.executemany(f"INSERT INTO {table} VALUES ({placeholders})", rows)
     conn.commit()
-    return cur.lastrowid
 
-def insert_to_categories(conn):
-
-    sql = """
-        INSERT INTO categories VALUES
-	    (1, 'tea'),
-        (2, 'coffee'),
-        (3, 'juice');
-    """
-    cur = conn.cursor()
-    cur.execute(sql)
-    conn.commit()
-    return cur.lastrowid
-
-def insert_to_customers(conn):
-
-    sql = """
-        INSERT INTO customers VALUES
-	    (1, 'Mark', 'Lee','Bangkok'),
-        (2, 'Johnny', 'Suh', 'Phuket'),
-        (3, 'Jennie', 'Kim', 'Chiangmai'),
-        (4, 'Jeno', 'Lee', 'Bangkok'),
-        (5, 'Karina', 'Yoo', 'Chiangmai');
-    """
-    cur = conn.cursor()
-    cur.execute(sql)
-    conn.commit()
-    return cur.lastrowid
-
-def insert_to_employees(conn):
-    sql = """
-         INSERT INTO employee VALUES
-	        (1, 'Nicolene', 'Jones','2020-09-01','Bangkok'),
-            (2, 'Anna', 'Smith', '2021-12-01', 'Phuket'),
-            (3, 'Jessica', 'Brown', '2020-08-01', 'Chiangmai');
-    """
-    cur = conn.cursor()
-    cur.execute(sql)
-    conn.commit()
-    return cur.lastrowid
-
-def insert_to_orders(conn):
-
-    sql = """
-        INSERT INTO Orders VALUES
-	    (1, '2022-08-01',1,1,4,'Grabfood',1),
-        (2, '2022-08-01',6,2,1,'Lineman',1),
-	    (3, '2022-08-02',2,2,2,'Robinhood',2),
-	    (4, '2022-08-03',3,1,5,'Grabfood',3),
-	    (5, '2022-08-04',1,1,2,'Robinhood',2),
-	    (6, '2022-08-05',6,1,4,'Grabfood',1),
-	    (7, '2022-08-05',10,1,3,'Grabfood',3),
-	    (8, '2022-08-09',3,2,4,'Grabfood',1),
-	    (9, '2022-08-13',5,3,1,'Lineman',1),
-	    (10, '2022-08-13',6,1,2,'Robinhood',2),
-	    (11, '2022-08-13',7,1,5,'Lineman',3),
-	    (12, '2022-08-14',4,1,5,'Grabfood',3),
-	    (13, '2022-08-15',5,2,3,'Grabfood',3),
-	    (14, '2022-08-15',10,1,2,'Robinhood',2),
-	    (15, '2022-08-18',5,2,1,'Lineman',1),
-	    (16, '2022-08-20',6,1,2,'Robinhood',2),
-	    (17, '2022-08-21',4,2,1,'Lineman',1),
-	    (18, '2022-08-25',5,1,5,'Grabfood',3),
-	    (19, '2022-08-26',5,3,3,'Grabfood',3),
-	    (20, '2022-08-29',6,2,4,'Grabfood',1);
-    """
-    cur = conn.cursor()
-    cur.execute(sql)
-    conn.commit()
-    return cur.lastrowid
 
 def main():
-    database = "./pythonsqlite.db"
+    # Start fresh each build so CREATE TABLE / INSERT don't collide with old data
+    if os.path.exists(DATABASE):
+        os.remove(DATABASE)
 
-    # create a database connection
-    conn = create_connection(database)
-    create_table(conn, sql_create_category_table)
-    insert_to_categories(conn)
-    create_table(conn, sql_create_menu_table)
-    insert_to_menu(conn)
-    create_table(conn, sql_create_customers_table)
-    insert_to_customers(conn)
-    create_table(conn, sql_create_employee_table)
-    insert_to_employees(conn)
-    create_table(conn, sql_create_orders_table)
-    insert_to_orders(conn)
+    conn = create_connection(DATABASE)
+
+    # Parent tables first, so foreign keys have something to point to
+    create_table(conn, sql_create_guests_table)
+    insert_rows(conn, "guests", GUESTS)
+    create_table(conn, sql_create_wedding_party_table)
+    insert_rows(conn, "wedding_party", WEDDING_PARTY)
+    create_table(conn, sql_create_events_table)
+    insert_rows(conn, "events", EVENTS)
+    create_table(conn, sql_create_gifts_table)
+    insert_rows(conn, "gifts", GIFTS)
+    create_table(conn, sql_create_rsvps_table)
+    insert_rows(conn, "rsvps", RSVPS)
 
     print("Database build successful!")
 
+
 if __name__ == "__main__":
     main()
-
-

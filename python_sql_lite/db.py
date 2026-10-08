@@ -25,6 +25,8 @@ def create_connection(db_file):
     conn = None
     try:
         conn = sqlite3.connect(db_file)
+        # SQLite ignores FOREIGN KEY constraints unless this is turned on
+        conn.execute("PRAGMA foreign_keys = ON")
     except Error as e:
         print(e)
 
